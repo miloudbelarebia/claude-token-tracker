@@ -75,6 +75,8 @@ cost = ( input_tokens      × input_price
 
 The cache multipliers (0.1× read, 1.25× 5-min write, 2× 1-hour write) are Anthropic's universal rules, so they hold for every model. The parser reads the `ephemeral_5m` / `ephemeral_1h` breakdown of each message to apply the right write multiplier.
 
+See **[docs/PRICING.md](docs/PRICING.md)** for the full method, sources, and a cross-check against Anthropic's own worked example.
+
 ### Pricing (USD per 1M tokens)
 
 Verified against [the official Anthropic pricing page](https://platform.claude.com/docs/en/about-claude/pricing) (May 2026).
@@ -101,6 +103,10 @@ claude-token-tracker/
 ├── requirements.txt
 ├── run.sh                 # parse + launch
 ├── LICENSE                # MIT
+├── tests/
+│   └── test_pricing.py    # unit tests for cost & model classification
+├── docs/
+│   └── PRICING.md         # pricing method + official sources
 └── data/
     ├── config.example.json
     ├── config.json        # your plan + language (gitignored)
@@ -117,6 +123,19 @@ claude-token-tracker/
 - **Claude.ai (web chat)** doesn't write local logs, so it isn't included. You could import a data export (Settings → Privacy → Export) to add it.
 - Costs don't reflect enterprise discounts, Batch API (−50%), or third-party platforms (Bedrock, Vertex).
 - Future models not yet in `PRICING` fall back to a Sonnet-equivalent estimate until you add their rate.
+
+## Tests
+
+Pricing logic is covered by unit tests (no extra dependencies — stdlib `unittest`):
+
+```bash
+python -m unittest discover -s tests -v
+# or, with pytest:
+python -m pytest tests/ -v
+```
+
+The cost tests assert against Anthropic's official worked example, so any drift
+from the published rates fails the suite.
 
 ## Contributing
 

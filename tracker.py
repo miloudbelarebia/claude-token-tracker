@@ -34,31 +34,44 @@ CACHE_WRITE_5M_MULT = 1.25  # 5-min write = 125% of input
 CACHE_WRITE_1H_MULT = 2.00  # 1-hour write = 200% of input
 
 
+def _version(model: str, line: str) -> tuple[int, int] | None:
+    """Extract (major, minor) for a model line, handling both naming styles:
+    new  → 'claude-opus-4-7'  (line before version)
+    old  → 'claude-3-5-haiku' (version before line).
+    The (?!\\d) guard and {1,2} bound prevent matching the date suffix."""
+    new = re.search(rf"{line}-(\d{{1,2}})(?:-(\d{{1,2}}))?(?!\d)", model)
+    if new:
+        return int(new.group(1)), int(new.group(2) or 0)
+    old = re.search(rf"(\d{{1,2}})(?:-(\d{{1,2}}))?-{line}", model)
+    if old:
+        return int(old.group(1)), int(old.group(2) or 0)
+    return None
+
+
 def model_family(model: str | None) -> str:
     if not model:
         return "unknown"
     m = model.lower()
 
-    om = re.search(r"opus-(\d+)(?:-(\d+))?", m)
-    if om:
-        major = int(om.group(1))
-        minor = int(om.group(2)) if (om.group(2) and len(om.group(2)) <= 2) else 0
-        if major >= 5 or (major == 4 and minor >= 5):
-            return "opus-4.5+"
-        return "opus-legacy"  # Opus 4, 4.1, Opus 3
+    if "opus" in m:
+        v = _version(m, "opus")
+        if v and (v[0] >= 5 or (v[0] == 4 and v[1] >= 5)):
+            return "opus-4.5+"          # Opus 4.5 / 4.6 / 4.7 → $5/$25
+        return "opus-legacy"            # Opus 4, 4.1, Opus 3 → $15/$75
 
     if "sonnet" in m:
-        return "sonnet-4"  # all Sonnet tiers share $3/$15
+        return "sonnet-4"               # every Sonnet tier shares $3/$15
 
-    hm = re.search(r"haiku-(\d+)(?:-(\d+))?", m)
-    if hm:
-        major = int(hm.group(1))
-        minor = int(hm.group(2)) if (hm.group(2) and len(hm.group(2)) <= 2) else 0
-        if major >= 4:
-            return "haiku-4"
-        if major == 3 and minor >= 5:
-            return "haiku-3-5"
-        return "haiku-3"
+    if "haiku" in m:
+        v = _version(m, "haiku")
+        if v:
+            major, minor = v
+            if major >= 4:
+                return "haiku-4"        # Haiku 4.5 → $1/$5
+            if major == 3 and minor >= 5:
+                return "haiku-3-5"      # Haiku 3.5 → $0.80/$4
+            return "haiku-3"            # Haiku 3 → $0.25/$1.25
+        return "haiku-4"                # bare 'haiku' → assume newest
 
     return "unknown"
 
