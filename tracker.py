@@ -180,9 +180,13 @@ def iter_jsonl(path: Path) -> Iterable[dict[str, Any]]:
 
 
 def parse_file(path: Path, conn: sqlite3.Connection) -> tuple[int, int]:
-    """Insert all messages from a JSONL into the DB. Returns (inserted, skipped)."""
+    """Insert all messages from a JSONL into the DB. Returns (inserted, skipped).
+    Groups contiguous/related assistant log entries by request ID to prevent
+    multi-counting token usage and costs."""
     inserted = skipped = 0
-    rows: list[tuple] = []
+    turns: dict[str, dict[str, Any]] = {}
+    order: list[str] = []
+
     for entry in iter_jsonl(path):
         etype = entry.get("type")
         if etype not in ("user", "assistant"):
@@ -190,30 +194,80 @@ def parse_file(path: Path, conn: sqlite3.Connection) -> tuple[int, int]:
         uuid = entry.get("uuid")
         if not uuid:
             continue
+
         msg = entry.get("message") or {}
         usage = msg.get("usage") or {}
         content_text = extract_text(msg.get("content"))
         model = msg.get("model")
+
+        if etype == "user":
+            key = uuid
+            turns[key] = {
+                "uuid": uuid,
+                "session_id": entry.get("sessionId"),
+                "parent_uuid": entry.get("parentUuid"),
+                "timestamp": entry.get("timestamp"),
+                "role": etype,
+                "model": model,
+                "content_parts": [content_text] if content_text else [],
+                "usage": {},
+                "cwd": entry.get("cwd"),
+                "entrypoint": entry.get("entrypoint"),
+                "git_branch": entry.get("gitBranch"),
+                "version": entry.get("version"),
+            }
+            order.append(key)
+        else:
+            req_id = entry.get("requestId") or msg.get("id") or uuid
+            if req_id not in turns:
+                turns[req_id] = {
+                    "uuid": uuid,
+                    "session_id": entry.get("sessionId"),
+                    "parent_uuid": entry.get("parentUuid"),
+                    "timestamp": entry.get("timestamp"),
+                    "role": etype,
+                    "model": model,
+                    "content_parts": [content_text] if content_text else [],
+                    "usage": usage,
+                    "cwd": entry.get("cwd"),
+                    "entrypoint": entry.get("entrypoint"),
+                    "git_branch": entry.get("gitBranch"),
+                    "version": entry.get("version"),
+                }
+                order.append(req_id)
+            else:
+                if content_text:
+                    turns[req_id]["content_parts"].append(content_text)
+                exist_usage = turns[req_id]["usage"] or {}
+                if usage and (usage.get("output_tokens", 0) > exist_usage.get("output_tokens", 0)):
+                    turns[req_id]["usage"] = usage
+
+    rows: list[tuple] = []
+    for key in order:
+        t = turns[key]
+        content_text = "\n".join(t["content_parts"])
+        usage = t["usage"] or {}
         rows.append((
-            uuid,
-            entry.get("sessionId"),
-            entry.get("parentUuid"),
-            entry.get("timestamp"),
-            etype,
-            model,
+            t["uuid"],
+            t["session_id"],
+            t["parent_uuid"],
+            t["timestamp"],
+            t["role"],
+            t["model"],
             content_text,
             usage.get("input_tokens", 0) or 0,
             usage.get("output_tokens", 0) or 0,
             usage.get("cache_read_input_tokens", 0) or 0,
             usage.get("cache_creation_input_tokens", 0) or 0,
-            compute_cost(model, usage),
-            entry.get("cwd"),
-            project_label_from_path(entry.get("cwd")),
-            entry.get("entrypoint"),
-            entry.get("gitBranch"),
-            entry.get("version"),
+            compute_cost(t["model"], usage),
+            t["cwd"],
+            project_label_from_path(t["cwd"]),
+            t["entrypoint"],
+            t["git_branch"],
+            t["version"],
             str(path),
         ))
+
     if not rows:
         return 0, 0
     cur = conn.cursor()

@@ -84,6 +84,20 @@ Both numbers are asserted in [`tests/test_pricing.py`](../tests/test_pricing.py)
 (`test_official_opus47_example`, `test_official_opus47_cache_example`) so the
 implementation stays locked to the official figures.
 
+## Deduplication (avoiding double-counting)
+
+Claude Code writes **one API call as several JSONL lines** — one per content
+block (thinking / text / tool_use) — and **each line repeats the same `usage`**.
+Naively summing every line inflates tokens and cost (observed 1.5×–2.6×
+depending on the session).
+
+The parser groups assistant log entries by **`requestId`** (falling back to the
+API `message.id`, then `uuid`) and counts each call's `usage` **once**. Genuinely
+distinct API calls (e.g. a tool-use chain) keep different `requestId`s and are
+counted separately. This is covered by
+[`tests/test_parser.py`](../tests/test_parser.py), and the per-`message.id`
+recount matches the parser's total to within $0.50 over ~20k calls.
+
 ## What the number means
 
 The cost shown is **theoretical pay-as-you-go API cost** — what your token
