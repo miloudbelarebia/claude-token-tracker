@@ -70,6 +70,26 @@ class TestNoDoubleCounting(unittest.TestCase):
         # cost = (10*5 + 500*25 + 1000*0.5) / 1e6 = $0.013
         self.assertAlmostEqual(cost, (10*5 + 500*25 + 1000*0.5)/1e6, places=6)
 
+    def test_same_call_across_two_files_counted_once(self):
+        # A resumed session copies the same API call (msg_A) into a second file.
+        # It must be counted ONCE across files, not duplicated.
+        usage = {"input_tokens": 10, "output_tokens": 500}
+        entry = dict(type="assistant", requestId="req_A", sessionId="s",
+                     timestamp="2026-05-01T10:00:01Z",
+                     message={"id": "msg_A", "role": "assistant", "model": "claude-opus-4-7",
+                              "content": [{"type": "text", "text": "hi"}], "usage": usage})
+        f1 = Path(self.tmp) / "a.jsonl"
+        f2 = Path(self.tmp) / "b.jsonl"
+        f1.write_text(_line(uuid="x1", **entry))
+        f2.write_text(_line(uuid="x2", **entry))   # same msg_A, different uuid
+        parse_file(f1, self.conn)
+        parse_file(f2, self.conn)
+        cur = self.conn.cursor()
+        n = cur.execute("SELECT COUNT(*) FROM messages WHERE role='assistant'").fetchone()[0]
+        out = cur.execute("SELECT COALESCE(SUM(output_tokens),0) FROM messages WHERE role='assistant'").fetchone()[0]
+        self.assertEqual(n, 1, "same API call in two files must collapse to one row")
+        self.assertEqual(out, 500, "tokens must not be double-counted across files")
+
     def test_distinct_request_ids_counted_separately(self):
         # Two genuinely distinct API calls (tool chain) → must BOTH be counted.
         u1 = {"input_tokens": 10, "output_tokens": 300}

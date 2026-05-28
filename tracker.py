@@ -218,7 +218,10 @@ def parse_file(path: Path, conn: sqlite3.Connection) -> tuple[int, int]:
             }
             order.append(key)
         else:
-            req_id = entry.get("requestId") or msg.get("id") or uuid
+            # Dedup key = API message id first (stable & globally unique per call),
+            # then requestId, then uuid. Used as the row PRIMARY KEY so that calls
+            # duplicated across files (resumed sessions) collapse via INSERT OR REPLACE.
+            req_id = msg.get("id") or entry.get("requestId") or uuid
             if req_id not in turns:
                 turns[req_id] = {
                     "uuid": uuid,
@@ -248,7 +251,7 @@ def parse_file(path: Path, conn: sqlite3.Connection) -> tuple[int, int]:
         content_text = "\n".join(t["content_parts"])
         usage = t["usage"] or {}
         rows.append((
-            t["uuid"],
+            key,  # dedup key as PRIMARY KEY → cross-file INSERT OR REPLACE dedups
             t["session_id"],
             t["parent_uuid"],
             t["timestamp"],
