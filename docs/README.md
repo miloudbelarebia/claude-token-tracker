@@ -1,7 +1,9 @@
 # Screenshots
 
-Drop a dashboard screenshot here as `screenshot.png`, then uncomment the image
-line at the top of the main [README](../README.md).
+`screenshot.png` (Profitability tab) and `overview.png` are embedded in the main
+[README](../README.md).
 
-Quick way: run `./run.sh`, open http://localhost:8501, and capture the window
-(macOS: ⌘⇧4 then Space; Linux: your screenshot tool; Windows: Snipping Tool).
+To refresh them: run `./run.sh`, open http://localhost:8501, and capture the
+**main content area only** — not the sidebar. The sidebar's project filter, the
+Sessions table and the Conversation tab all show real folder names and prompts
+you probably don't want to publish.

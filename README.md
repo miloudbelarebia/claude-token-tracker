@@ -4,10 +4,11 @@ A local, privacy-first dashboard to track **all your Claude Code usage** — tok
 
 It reads the session logs Claude Code writes to `~/.claude/projects/` (the JSONL format shared by every Claude Code surface), aggregates them into a local SQLite database, and serves an interactive Streamlit dashboard. **Nothing leaves your machine.**
 
-<!-- Add a screenshot at docs/screenshot.png and uncomment:
-![Dashboard screenshot](docs/screenshot.png)
--->
+![Claude Token Tracker — Profitability tab](docs/screenshot.png)
+
 > Dark, smooth dashboard — Profitability, Overview, Sessions, Conversation and Search tabs, in EN / FR / AR.
+
+![Overview — daily cost and token breakdown over time](docs/overview.png)
 
 ## Why
 
