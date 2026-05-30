@@ -29,11 +29,13 @@ class TestModelFamily(unittest.TestCase):
 
     def test_opus_4_5_plus_gets_new_pricing(self):
         for m in [
+            "claude-opus-4-8",
             "claude-opus-4-7",
             "claude-opus-4-6",
             "claude-opus-4-5",
             "claude-opus-4-5-20251101",
             "claude-opus-4-7-20260115",
+            "claude-opus-4-8-20260601",
         ]:
             self.assertEqual(model_family(m), "opus-4.5+", m)
 

@@ -40,7 +40,7 @@ cost = ( input_tokens       × input_price
 
 | Model | Input | Output |
 |---|---|---|
-| **Opus 4.5 / 4.6 / 4.7** | $5 | $25 |
+| **Opus 4.5 / 4.6 / 4.7 / 4.8** | $5 | $25 |
 | Opus 4 / 4.1 (deprecated) | $15 | $75 |
 | Sonnet 4 / 4.5 / 4.6 (and 3.x) | $3 | $15 |
 | Haiku 4.5 | $1 | $5 |

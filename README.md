@@ -84,7 +84,7 @@ Verified against [the official Anthropic pricing page](https://platform.claude.c
 
 | Model | Input | Output |
 |---|---|---|
-| **Opus 4.5 / 4.6 / 4.7** | $5 | $25 |
+| **Opus 4.5 / 4.6 / 4.7 / 4.8** | $5 | $25 |
 | Opus 4 / 4.1 (deprecated) | $15 | $75 |
 | Sonnet 4 / 4.5 / 4.6 | $3 | $15 |
 | Haiku 4.5 | $1 | $5 |

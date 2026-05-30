@@ -19,7 +19,7 @@ DEFAULT_DB = Path(__file__).parent / "data" / "tracker.db"
 # Source: platform.claude.com/docs/en/about-claude/pricing (verified 2026-05).
 # IMPORTANT: Opus dropped from $15/$75 to $5/$25 starting with Opus 4.5.
 PRICING: dict[str, dict[str, float]] = {
-    "opus-4.5+":   {"input": 5.00,  "output": 25.00},   # Opus 4.5, 4.6, 4.7
+    "opus-4.5+":   {"input": 5.00,  "output": 25.00},   # Opus 4.5, 4.6, 4.7, 4.8
     "opus-legacy": {"input": 15.00, "output": 75.00},   # Opus 4, 4.1, Opus 3 (deprecated)
     "sonnet-4":    {"input": 3.00,  "output": 15.00},   # Sonnet 3.x, 4, 4.5, 4.6
     "haiku-4":     {"input": 1.00,  "output": 5.00},    # Haiku 4.5
@@ -56,7 +56,7 @@ def model_family(model: str | None) -> str:
     if "opus" in m:
         v = _version(m, "opus")
         if v and (v[0] >= 5 or (v[0] == 4 and v[1] >= 5)):
-            return "opus-4.5+"          # Opus 4.5 / 4.6 / 4.7 → $5/$25
+            return "opus-4.5+"          # Opus 4.5 / 4.6 / 4.7 / 4.8 → $5/$25
         return "opus-legacy"            # Opus 4, 4.1, Opus 3 → $15/$75
 
     if "sonnet" in m:
